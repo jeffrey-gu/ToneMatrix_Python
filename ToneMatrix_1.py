@@ -38,7 +38,7 @@ class Tile(pygame.sprite.Sprite):
        self.image.fill(defaultColor)
 
        # attach audio file
-       # self.sound = pygame.mixer.Sound(soundFile)
+       self.sound = pygame.mixer.Sound(soundFile)
        self.soundFile = soundFile
        self.isActive = False
 
@@ -53,13 +53,15 @@ class Tile(pygame.sprite.Sprite):
        self.i = tileI
        self.j = tileJ
 
-    def update(self, soundCol, tileList):
+    def update(self, updateList):
 
     	# print "we are updating a tile"
     	if self.isActive:
-    		soundCol.append(self.soundFile)	#add sound to a list
-    		tileList.append((self.image, self.rect))	#add column position to a list
+    		# soundCol.append(self.soundFile)	#add sound to a list
+    		# tileList.append((self.image, self.rect))	#add column position to a list
     		# tileList.append(self)
+    		updateList.append((self.soundFile, (self.image, self.rect)))
+
 
 # this function creates a board of tile sprites, and appends them to a list
 def setMatrix():
@@ -84,17 +86,19 @@ def setMatrix():
 def activateMatrix(groupList):
 	for group in groupList:
 
-		soundCol = []
-		tileList = []
-		group.update(soundCol, tileList)	#calling update on group -> calls update on each indv sprite
+		# soundCol = []
+		# tileList = []
+		updateList = []
+
+		group.update(updateList)	#calling update on group -> calls update on each indv sprite
 		# for tile in group:
 		# 	tile.update(screen)
 
 		threadList = []
 
-		for i in range(0,len(tileList)):	#activate all tiles in column at once
+		for i in range(0,len(updateList)):	#activate all tiles in column at once
 			# t = Process(target=lightEmUp, args = (soundCol[i],tileList[i], screen,))
-			t = threading.Thread(target=lightEmUp, args = (soundCol[i],tileList[i],))
+			t = threading.Thread(target=lightEmUp, args = (updateList[i]))
 
 			# t = Process(target = lightEmUp, args = (tileList[i], screen,))
 			threadList.append(t)
@@ -171,7 +175,6 @@ def main():
 	screen.fill(gray)	#default background
 
 	pygame.display.set_caption('Tone Matrix')
-	clock = pygame.time.Clock()	#helps to keep track of fps
 
 	#instantiate matrix
 	groupList = setMatrix()
@@ -184,16 +187,15 @@ def main():
 				pygame.quit()
 				quit()
 
-			elif event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
+			elif event.type == pygame.MOUSEBUTTONDOWN:
 
-				print "you clicked at ", event.pos
+				print "you clicked at %s, and mouse is at %s" %(event.pos, pygame.mouse.get_pos())
 
 				#check if user clicked on any of the tiles
 				for group in groupList:
 					for t in group:
 						# print "tile rect is at: (%d, %d) with %d width and height" %(t.rect.x, t.rect.y, t.rect.width)
 						if (t.rect.collidepoint(event.pos)) == 1:
-							print "you clicked a tile!"
 							t.isActive = not t.isActive
 
 						# print "is the tile active: %r" %t.isActive
@@ -207,7 +209,6 @@ def main():
 		pygame.display.flip()
 
 		# screen.fill((0,0,0))	#do we need to redraw?
-		clock.tick(30)	#frames per second (Desired)
 
 ###############################
 

@@ -57,10 +57,7 @@ class Tile(pygame.sprite.Sprite):
 
     	# print "we are updating a tile"
     	if self.isActive:
-    		# soundCol.append(self.soundFile)	#add sound to a list
-    		# tileList.append((self.image, self.rect))	#add column position to a list
-    		# tileList.append(self)
-    		updateList.append((self.soundFile, (self.image, self.rect)))
+    		updateList.append(self)
 
 
 # this function creates a board of tile sprites, and appends them to a list
@@ -86,21 +83,14 @@ def setMatrix():
 def activateMatrix(groupList):
 	for group in groupList:
 
-		# soundCol = []
-		# tileList = []
 		updateList = []
-
 		group.update(updateList)	#calling update on group -> calls update on each indv sprite
-		# for tile in group:
-		# 	tile.update(screen)
 
 		threadList = []
 
 		for i in range(0,len(updateList)):	#activate all tiles in column at once
-			# t = Process(target=lightEmUp, args = (soundCol[i],tileList[i], screen,))
-			t = threading.Thread(target=lightEmUp, args = (updateList[i]))
 
-			# t = Process(target = lightEmUp, args = (tileList[i], screen,))
+			t = threading.Thread(target=lightEmUp, args = (updateList[i],))
 			threadList.append(t)
 
 		for thread in threadList:
@@ -112,50 +102,25 @@ def activateMatrix(groupList):
 		pygame.time.delay(50)	#delay in between each column
 	pygame.time.delay(2000)	#delay before next iteration
 
-def lightEmUp(soundFile, square):
-# def lightEmUp(square, screen):
+def lightEmUp(tile):
 	def playSound():
-		sound = pygame.mixer.Sound(soundFile)
-		sound.play()
-		# square.soundFile.play()
+		tile.sound.play()
 
 	def blip():
 		#retrieve tile props
-		image = square[0]
-		rect = square[1]
-
-		# image = square.image
-		# rect = square.rect
+		image = tile.image
+		rect = tile.rect
 
 		#color change
-		image.fill(flashColor)
-		screen.blit(image, rect)
-		pygame.display.update(rect)
-
-		pygame.time.wait(200)
-
 		image.fill(defaultColor)
 		screen.blit(image, rect)
 		pygame.display.update(rect)
 
+		pygame.time.wait(100)
 
-		#color gradient code...too slow
-		# gradient = 0.5
-		# colorChange = defaultColor
-
-		# while(colorChange != flashColor):
-		# 	colorChange = (colorChange[0] + gradient, colorChange[1] + gradient, colorChange[2] + gradient)
-		# 	image.fill(colorChange)
-		# 	screen.blit(image, rect)
-		# 	pygame.display.update(rect)
-		# 	pygame.time.wait(50)
-
-		# while(colorChange != defaultColor):
-		# 	colorChange = (colorChange[0] - gradient, colorChange[1] - gradient, colorChange[2] - gradient)
-		# 	image.fill(colorChange)
-		# 	screen.blit(image, rect)
-		# 	pygame.display.update(rect)
-		# 	pygame.time.wait(50)
+		image.fill(flashColor)
+		screen.blit(image, rect)
+		pygame.display.update(rect)
 
 	chime = threading.Thread(target = playSound, args=())
 	flash = threading.Thread(target = blip, args=())
@@ -197,6 +162,14 @@ def main():
 						# print "tile rect is at: (%d, %d) with %d width and height" %(t.rect.x, t.rect.y, t.rect.width)
 						if (t.rect.collidepoint(event.pos)) == 1:
 							t.isActive = not t.isActive
+							if t.isActive:
+								t.image.fill(flashColor)
+								screen.blit(t.image, t.rect)
+								pygame.display.update(t.rect)
+							else:
+								t.image.fill(defaultColor)
+								screen.blit(t.image, t.rect)
+								pygame.display.update(t.rect)
 
 						# print "is the tile active: %r" %t.isActive
 						# print "did you click in its region? %r" %(t.rect.collidepoint(event.pos))
@@ -207,8 +180,6 @@ def main():
 		activateMatrix(groupList)
 
 		pygame.display.flip()
-
-		# screen.fill((0,0,0))	#do we need to redraw?
 
 ###############################
 

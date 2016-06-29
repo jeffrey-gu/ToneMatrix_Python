@@ -1,7 +1,7 @@
 import pygame
 from pygame.locals import *
 
-# from multiprocessing import Process
+from multiprocessing import Process
 import threading
 import os
 
@@ -55,9 +55,8 @@ class Tile(pygame.sprite.Sprite):
 
     def update(self, updateList):
 
-    	# print "we are updating a tile"
     	if self.isActive:
-    		updateList.append(self)
+    		updateList.append(threading.Thread(target=lightEmUp, args = (self.sound, self.rect, self.image)))
 
 
 # this function creates a board of tile sprites, and appends them to a list
@@ -75,8 +74,6 @@ def setMatrix():
 			tile = Tile(defaultColor, width, height, (i*(width+padding), j*(height+padding)), clipName, i, j)	#tileID must be unique
 			groupList[i].add(tile)
 
-			#print "we made a tile at position (%d, %d), with width %d and length %d)" %(tile.rect.x, tile.rect.y, tile.rect.width, tile.rect.height)
-
 	return groupList
 
 #call on each group's tile update functions in succession
@@ -86,31 +83,20 @@ def activateMatrix(groupList):
 		updateList = []
 		group.update(updateList)	#calling update on group -> calls update on each indv sprite
 
-		threadList = []
-
-		for i in range(0,len(updateList)):	#activate all tiles in column at once
-
-			t = threading.Thread(target=lightEmUp, args = (updateList[i],))
-			threadList.append(t)
-
-		for thread in threadList:
+		for thread in updateList:
 			thread.start()
 
-		for thread in threadList:	#wait for all processes to finish
+		for thread in updateList:	#wait for all processes to finish
 			thread.join()
 
 		pygame.time.delay(50)	#delay in between each column
-	pygame.time.delay(2000)	#delay before next iteration
+	pygame.time.delay(1500)	#delay before next iteration
 
-def lightEmUp(tile):
-	def playSound():
-		tile.sound.play()
+def lightEmUp(sound, rect, image):
+	def toggleSound():
+		sound.play()
 
 	def blip():
-		#retrieve tile props
-		image = tile.image
-		rect = tile.rect
-
 		#color change
 		image.fill(defaultColor)
 		screen.blit(image, rect)
@@ -122,39 +108,46 @@ def lightEmUp(tile):
 		screen.blit(image, rect)
 		pygame.display.update(rect)
 
-	chime = threading.Thread(target = playSound, args=())
-	flash = threading.Thread(target = blip, args=())
+	# chime = threading.Thread(target = playSound)
+	# flash = threading.Thread(target = blip)
 
-	chime.start()
-	flash.start()
+	# chime.start()
+	# flash.start()
 
-	chime.join()
-	flash.join()
+	# chime.join()
+	# flash.join()
+
+	blip()
+	toggleSound()
 
 def main():
 	global screen
 
-	pygame.init()
 	display = (800, 600)
 	screen = pygame.display.set_mode(display)
 	screen.fill(gray)	#default background
+	clock = pygame.time.Clock()
 
 	pygame.display.set_caption('Tone Matrix')
 
 	#instantiate matrix
 	groupList = setMatrix()
 
+	for group in groupList:	#draw tiles on screen
+		group.draw(screen)
+
 	#######################
 	#pygame event loop
 	while True:
-		for event in pygame.event.get():	#gets every event that is queued up (per frame per second)
-			if event.type == pygame.QUIT:
+		events = pygame.event.get()
+		for event in events:
+			if (event.type == pygame.QUIT) or (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
 				pygame.quit()
 				quit()
 
-			elif event.type == pygame.MOUSEBUTTONDOWN:
+			elif event.type == pygame.MOUSEBUTTONUP:	#ISSUE: event position is carried over to the next click?
 
-				print "you clicked at %s, and mouse is at %s" %(event.pos, pygame.mouse.get_pos())
+				print event.pos
 
 				#check if user clicked on any of the tiles
 				for group in groupList:
@@ -164,25 +157,21 @@ def main():
 							t.isActive = not t.isActive
 							if t.isActive:
 								t.image.fill(flashColor)
-								screen.blit(t.image, t.rect)
-								pygame.display.update(t.rect)
+
 							else:
 								t.image.fill(defaultColor)
-								screen.blit(t.image, t.rect)
-								pygame.display.update(t.rect)
 
-						# print "is the tile active: %r" %t.isActive
-						# print "did you click in its region? %r" %(t.rect.collidepoint(event.pos))
+							pygame.display.update(t.rect)
 
-		for group in groupList:
-			group.draw(screen)
+					# group.draw(screen)
+				# pygame.display.flip()	#update tiles to include any activated ones
 
 		activateMatrix(groupList)
-
 		pygame.display.flip()
 
 ###############################
 
-main()
-pygame.quit()
-quit()
+if __name__ == '__main__':
+    pygame.init()
+    main()
+    pygame.quit()

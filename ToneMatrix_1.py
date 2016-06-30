@@ -1,7 +1,7 @@
 import pygame
 from pygame.locals import *
 
-from multiprocessing import Process, Pool
+# from multiprocessing import Process, Pool
 import threading
 import os
 
@@ -53,25 +53,10 @@ class Tile(pygame.sprite.Sprite):
        self.i = tileI
        self.j = tileJ
 
-    def update(self):
+    def update(self, updateList):
 
-    	def toggleSound():
-    		self.sound.play()
-
-    	def blip():
-    		#color change
-    		self.image.fill(defaultColor)
-    		screen.blit(self.image, self.rect)
-    		pygame.display.update(self.rect)
-
-    		pygame.time.wait(100)
-
-    		self.image.fill(flashColor)
-    		screen.blit(self.image, self.rect)
-    		pygame.display.update(self.rect)
-
-    	blip()
-    	toggleSound()
+    	if self.isActive:
+    		updateList.append(threading.Thread(target = lightEmUp, args = (self,)))
 
 # this function creates a board of tile sprites, and appends them to a list
 def setMatrix():
@@ -93,85 +78,71 @@ def setMatrix():
 #call on each group's tile update functions in succession
 def activateMatrix(groupList):
 
-	# def light(sound, image, rect):
-
-	# 	def toggleSound(sound):
-	#     	sound.play()
-
-	#     def blip(image, rect):
-	#     	#color change
-	#     	image.fill(defaultColor)
-	#    		screen.blit(image, rect)
-	#     	pygame.display.update(rect)
-
-	#     	pygame.time.wait(100)
-
-	#     	image.fill(flashColor)
-	#     	screen.blit(image, rect)
-	#    		pygame.display.update(rect)
-
-	#    	blip()
-	#    	toggleSound()
-
 	for group in groupList:
 
 		updateList = []
 
-		for tile in group:
-			if tile.isActive:
+		#MULTIPROCESSING ATTEMPT
+		# for tile in group:
+		# 	if tile.isActive:
 				# updateList.append(threading.Thread(target=tile.update()))
 				# updateList.append(Process(target=tile.update()))
-				updateList.append(tile)
+				# updateList.append(tile)
 
-		numActive = len(updateList)
+		# numActive = len(updateList)
 
-		if numActive > 0:	# must have at least 1 process to instan. pool
+		# if numActive > 0:	# must have at least 1 process to instan. pool
 
-			pool = Pool(processes=len(updateList))
-			for tile in updateList:
-				# pool.apply_async(light, (tile.sound, tile.image, tile.rect))
-				pool.apply_async(tile.update())
+		# 	pool = Pool(processes=len(updateList))
+		# 	for tile in updateList:
+		# 		# pool.apply_async(light, (tile.sound, tile.image, tile.rect))
+		# 		pool.apply_async(tile.update())
 
-			pool.close()
-			pool.join()
+		# 	pool.close()
+		# 	pool.join()
 
-		# for thread in updateList:
-		# 	thread.start()
-		# 	thread.join()
+		group.update(updateList)
 
-		# for thread in updateList:
-		# 	thread.join()
+		for thread in updateList:
+			thread.start()
+
+		for thread in updateList:
+			thread.join()
 
 		pygame.time.delay(50)	#delay in between each column
 	pygame.time.delay(1500)	#delay before next iteration
 
-# def lightEmUp(sound, rect, image):
-# 	def toggleSound():
-# 		sound.play()
+def lightEmUp(tile):
+	sound = tile.sound
+	image = tile.image
+	rect = tile.rect
 
-# 	def blip():
-# 		#color change
-# 		image.fill(defaultColor)
-# 		screen.blit(image, rect)
-# 		pygame.display.update(rect)
+	def toggleSound(sound):
+		sound.play()
 
-# 		pygame.time.wait(100)
+	def blip(image, rect):
+		#color change
+		image.fill(defaultColor)
+		screen.blit(image, rect)
+		pygame.display.update(rect)
 
-# 		image.fill(flashColor)
-# 		screen.blit(image, rect)
-# 		pygame.display.update(rect)
+		pygame.time.wait(100)
 
-# 	# chime = threading.Thread(target = playSound)
-# 	# flash = threading.Thread(target = blip)
+		image.fill(flashColor)
+		screen.blit(image, rect)
+		pygame.display.update(rect)
 
-# 	# chime.start()
-# 	# flash.start()
+	# chime = threading.Thread(target = playSound)
+	# flash = threading.Thread(target = blip)
 
-# 	# chime.join()
-# 	# flash.join()
+	# chime.start()
+	# flash.start()
 
-# 	blip()
-# 	toggleSound()
+	# chime.join()
+	# flash.join()
+
+	blip(image, rect)
+	toggleSound(sound)
 
 def main():
 	global screen
@@ -214,10 +185,8 @@ def main():
 							else:
 								t.image.fill(defaultColor)
 
+							screen.blit(t.image, t.rect)
 							pygame.display.update(t.rect)
-
-					# group.draw(screen)
-				# pygame.display.flip()	#update tiles to include any activated ones
 
 		activateMatrix(groupList)
 		pygame.display.flip()
